@@ -1,6 +1,5 @@
 /**
  * Configuración central de la URL base del backend.
- * En desarrollo local usa http://localhost:8080 por defecto.
- * En producción (Hostinger), Vite inyecta VITE_API_URL desde .env.production.
+ * Soporta variable VITE_API_URL o fallback a túnel de Cloudflare / localhost.
  */
-export const API_BASE_URL = import.meta.env.VITE_API_URL ?? 'http://localhost:8080';
+export const API_BASE_URL = import.meta.env.VITE_API_URL || 'https://interference-purse-jones-convinced.trycloudflare.com';
