@@ -107,10 +107,15 @@ export const Usuarios = () => {
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white p-6 rounded-xl border border-slate-100 shadow-sm">
                 <div>
                     <h1 className="text-2xl font-bold text-slate-900 tracking-tight">Gestión de Usuarios</h1>
-                    <p className="text-slate-500 text-sm mt-1">Administre las cuentas de usuario y permisos del sistema.</p>
+                    <p className="text-slate-500 text-sm mt-1">
+                        Administre las cuentas de usuario ({users.length} usuarios registrados en el sistema).
+                    </p>
                 </div>
                 <button
-                    onClick={() => setIsCreateModalOpen(true)}
+                    onClick={() => {
+                        setUserToEdit(null);
+                        setIsCreateModalOpen(true);
+                    }}
                     className="flex items-center justify-center gap-2 px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-semibold transition-all shadow-sm hover:shadow"
                 >
                     <UserPlus className="w-4 h-4" />
@@ -136,7 +141,7 @@ export const Usuarios = () => {
 
                     <div className="flex items-center gap-3 w-full sm:w-auto">
                         <div className="flex items-center gap-2 text-sm text-slate-500">
-                            <span>Mostrar:</span>
+                            <span>Mostrar por página:</span>
                             <select
                                 value={itemsPerPage}
                                 onChange={(e) => {
@@ -148,6 +153,9 @@ export const Usuarios = () => {
                                 <option value={10}>10</option>
                                 <option value={20}>20</option>
                                 <option value={50}>50</option>
+                                <option value={100}>100</option>
+                                <option value={500}>500</option>
+                                <option value={2000}>Todos ({filteredData.length})</option>
                             </select>
                         </div>
                     </div>
@@ -315,7 +323,10 @@ export const Usuarios = () => {
 
             <CreateUsuario
                 isOpen={isCreateModalOpen}
-                onClose={() => setIsCreateModalOpen(false)}
+                onClose={() => {
+                    setIsCreateModalOpen(false);
+                    setUserToEdit(null);
+                }}
                 onSaved={fetchUsers}
                 editData={userToEdit}
             />

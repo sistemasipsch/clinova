@@ -15,31 +15,45 @@ export const OPCIONES_CONTRATO_POR_CATEGORIA = {
         'Término Indefinido',
         'Aprendizaje',
         'Obra o Labor',
-        'Temporal'
+        'Temporal',
+        'Planta'
     ],
     [CATEGORIAS_CONTRATACION.PROVEEDORES]: [
         'Prestación de Servicios',
         'Prestacion de servicios',
         'OPS / Honorarios',
-        'Contratista'
+        'Contratista',
+        'Proveedor'
     ]
+};
+
+/**
+ * Normaliza cualquier string removiendo acentos, espacios extra y convirtiendo a minúsculas.
+ */
+const normalizeString = (str) => {
+    if (!str || typeof str !== 'string') return '';
+    return str
+        .toLowerCase()
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "")
+        .trim();
 };
 
 /**
  * Determina si un tipo de contrato pertenece a la categoría de NÓMINA.
  */
 export const esContratoNomina = (tipoContrato) => {
-    if (!tipoContrato || typeof tipoContrato !== 'string') return false;
-    const norm = tipoContrato.toLowerCase().trim();
+    const norm = normalizeString(tipoContrato);
+    if (!norm) return false;
     return (
         norm.includes('nomina') ||
-        norm.includes('nómina') ||
         norm.includes('indefinido') ||
         norm.includes('fijo') ||
         norm.includes('directo') ||
         norm.includes('aprendizaje') ||
         norm.includes('obra') ||
-        norm.includes('temporal')
+        norm.includes('temporal') ||
+        norm.includes('planta')
     );
 };
 
@@ -47,8 +61,8 @@ export const esContratoNomina = (tipoContrato) => {
  * Determina si un tipo de contrato pertenece a la categoría de PROVEEDORES / OPS.
  */
 export const esContratoOPS = (tipoContrato) => {
-    if (!tipoContrato || typeof tipoContrato !== 'string') return false;
-    const norm = tipoContrato.toLowerCase().trim();
+    const norm = normalizeString(tipoContrato);
+    if (!norm) return false;
     return (
         norm.includes('prestac') ||
         norm.includes('ops') ||

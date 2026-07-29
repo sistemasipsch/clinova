@@ -10,6 +10,7 @@ import SecureImage from '../../../components/SecureImage';
 import { API_BASE_URL } from '../../../config/api';
 import { TrazabilidadPanel } from '../../../components/TrazabilidadPanel';
 import { esContratoNomina, esContratoOPS } from '../../../utils/contractUtils';
+import { resolveOptionLabel } from '../../../utils/optionResolver';
 
 export const HojaVida = ({ tipoSubmodulo = null }) => {
     const navigate = useNavigate();
@@ -238,13 +239,15 @@ export const HojaVida = ({ tipoSubmodulo = null }) => {
                     } catch (err) {}
                 }
 
+                let freshSedeId = hv.sedes?.[0]?.id || foundUserObj?.sede?.id || foundUserObj?.hojaVida?.sedes?.[0]?.id || '';
+
                 setCvNombre(`${freshNombres} ${freshApellidos}`);
                 setDatosCV({
                     cedula: hv.cedula || '', nombres: freshNombres, apellidos: freshApellidos, fechaNacimiento: hv.fechaNacimiento || '', 
                     direccionResidencia: hv.direccionResidencia || '', telefono: hv.telefono || '', correoElectronico: freshCorreo, 
                     contactoEmergencia: hv.contactoEmergencia || '', telefonoContactoEmergencia: hv.telefonoContactoEmergencia || '', 
                     arl: hv.arl || '', eps: hv.eps || '', afp: hv.afp || '', cajaCompensacion: hv.cajaCompensacion || '',
-                    fechaIngreso: hv.fechaIngreso || '', tipoContrato: hv.tipoContrato || foundUserObj?.tipoContrato || '', sedeId: hv.sedes?.[0]?.id || '', 
+                    fechaIngreso: hv.fechaIngreso || '', tipoContrato: hv.tipoContrato || foundUserObj?.tipoContrato || '', sedeId: freshSedeId, 
                     cargoId: freshCargoId, salario: hv.salario || '', subsidioTransporte: hv.subsidioTransporte || '',
                     estado: hv.estado || '', fechaRetiro: hv.fechaRetiro || '', motivoRetiro: hv.motivoRetiro || '', usuarioId: hv.usuarioId || foundUserObj?.id || '', 
                     perfilVacunacion: freshPerfil, detalleVacunas: parsedVacunas,
@@ -256,28 +259,30 @@ export const HojaVida = ({ tipoSubmodulo = null }) => {
                 const esNominaUser = esContratoNomina(rawContratoStr);
                 const esOpsUser = esContratoOPS(rawContratoStr);
 
-                if (tipoSubmodulo === 'NOMINA' && esOpsUser && !esNominaUser) {
+                const activeSubmodulo = searchParams.get('submodulo') || tipoSubmodulo;
+
+                if (activeSubmodulo === 'NOMINA' && esOpsUser && !esNominaUser) {
                     setAdvertenciaTipoContrato({
                         tipoEsperado: 'NÓMINA',
                         tipoEncontrado: 'PROVEEDORES / OPS',
                         nombre: `${freshNombres} ${freshApellidos}`,
                         cedula: cedulaTrim,
-                        targetRoute: '/hojasDeVida/proveedores'
+                        targetRoute: `/talentoHumano/hoja-de-vida?cedula=${cedulaTrim}&submodulo=PROVEEDORES`
                     });
                     showAlert({ 
-                        message: `⚠️ ATENCIÓN: El usuario ${freshNombres} ${freshApellidos} (CC ${cedulaTrim}) está registrado como PROVEEDOR (OPS / Prestación de Servicios).`, 
+                        message: `⚠️ ATENCIÓN: El usuario ${freshNombres} ${freshApellidos} (CC ${cedulaTrim}) está registrado como PROVEEDOR (OPS / Prestación de Servicios). Para modificar su perfil debes estar en el submódulo de Proveedores.`, 
                         status: 'warning' 
                     });
-                } else if (tipoSubmodulo === 'PROVEEDORES' && esNominaUser && !esOpsUser) {
+                } else if (activeSubmodulo === 'PROVEEDORES' && esNominaUser && !esOpsUser) {
                     setAdvertenciaTipoContrato({
                         tipoEsperado: 'PROVEEDORES (OPS)',
                         tipoEncontrado: 'NÓMINA',
                         nombre: `${freshNombres} ${freshApellidos}`,
                         cedula: cedulaTrim,
-                        targetRoute: '/hojasDeVida/nomina'
+                        targetRoute: `/talentoHumano/hoja-de-vida?cedula=${cedulaTrim}&submodulo=NOMINA`
                     });
                     showAlert({ 
-                        message: `⚠️ ATENCIÓN: El usuario ${freshNombres} ${freshApellidos} (CC ${cedulaTrim}) está registrado en NÓMINA.`, 
+                        message: `⚠️ ATENCIÓN: El usuario ${freshNombres} ${freshApellidos} (CC ${cedulaTrim}) está registrado en NÓMINA. Para modificar su perfil debes estar en el submódulo de Nómina.`, 
                         status: 'warning' 
                     });
                 } else {
@@ -319,7 +324,9 @@ export const HojaVida = ({ tipoSubmodulo = null }) => {
                         const p = foundUser.persona || {};
                         const finalNombres = foundUser.nombres || `${p.primerNombre || ''} ${p.segundoNombre || ''}`.trim() || 'Usuario';
                         const finalApellidos = foundUser.apellidos || `${p.primerApellido || ''} ${p.segundoApellido || ''}`.trim() || 'Nuevo';
-                        const finalCorreo = p.correoElectronico || foundUser.email || foundUser.username || null;
+                        const rawEmail = p.correoElectronico || foundUser.email || foundUser.username || '';
+                        const finalCorreo = (rawEmail && rawEmail.includes('@')) ? rawEmail.trim() : null;
+                        const userTipoContrato = foundUser.tipoContrato || foundUser.hojaVida?.tipoContrato || p.tipoContrato || null;
                         const fallbackIngreso = new Date().toISOString().split('T')[0];
                         const prePerfil = p.perfilVacunacion || '';
 
@@ -327,9 +334,9 @@ export const HojaVida = ({ tipoSubmodulo = null }) => {
                             nombres: finalNombres, apellidos: finalApellidos, cedula: cedulaTrim, fechaNacimiento: null, 
                             direccionResidencia: p.direccionResidencia || null, telefono: p.numeroTelefono || null, contactoEmergencia: null, 
                             telefonoContactoEmergencia: null, arl: null, eps: null, afp: null, cajaCompensacion: null, 
-                            salario: null, subsidioTransporte: null, fechaIngreso: fallbackIngreso, estado: null, tipoContrato: null, 
-                            fechaRetiro: null, motivoRetiro: null, correoElectronico: finalCorreo, perfilVacunacion: prePerfil || null, 
-                            detalleVacunas: '[]', usuarioId: foundUser.id ? parseInt(foundUser.id) : null, 
+                            salario: null, subsidioTransporte: null, fechaIngreso: fallbackIngreso, estado: foundUser.estado || 'Activo', 
+                            tipoContrato: userTipoContrato, fechaRetiro: null, motivoRetiro: null, correoElectronico: finalCorreo, 
+                            perfilVacunacion: prePerfil || null, detalleVacunas: '[]', usuarioId: foundUser.id ? parseInt(foundUser.id) : null, 
                             cargosIds: foundUser.cargo ? [parseInt(foundUser.cargo.id)] : [], sedesIds: []
                         };
 
@@ -376,6 +383,13 @@ export const HojaVida = ({ tipoSubmodulo = null }) => {
 
     const handleCrearCV = async (e) => {
         if(e) e.preventDefault();
+        if (advertenciaTipoContrato) {
+            showAlert({ 
+                message: `⚠️ Operación bloqueada: El usuario pertenece a ${advertenciaTipoContrato.tipoEncontrado}. Haz clic en el botón superior 'Ir a ${advertenciaTipoContrato.tipoEncontrado.includes('OPS') ? 'Proveedores (OPS)' : 'Nómina'}' para editar su perfil en el submódulo correspondiente.`, 
+                status: 'error' 
+            });
+            return;
+        }
         try {
             const payload = {
                 nombres: datosCV.nombres || null, apellidos: datosCV.apellidos || null, cedula: datosCV.cedula,
@@ -878,13 +892,13 @@ export const HojaVida = ({ tipoSubmodulo = null }) => {
                                                     <span className="text-[10px] text-gray-400 italic bg-gray-50 px-2 py-0.5 rounded border border-gray-200">Editar en Gestión de Usuarios</span>
                                                 </div>
                                                 <div><label className={labelClass}>Perfil de Vacunación</label><input type="text" readOnly className={`${inputClass} ${readOnlyClass}`} value={datosCV.perfilVacunacion || 'No definido'} title="Se configura desde Gestión de Usuarios" /></div>
-                                                <div className="mt-4"><label className={labelClass}>ARL</label><input type="text" readOnly className={`${inputClass} ${readOnlyClass}`} value={datosCV.arl || '—'} /></div>
-                                                <div><label className={labelClass}>EPS</label><input type="text" readOnly className={`${inputClass} ${readOnlyClass}`} value={datosCV.eps || '—'} /></div>
-                                                <div><label className={labelClass}>AFP</label><input type="text" readOnly className={`${inputClass} ${readOnlyClass}`} value={datosCV.afp || '—'} /></div>
-                                                <div><label className={labelClass}>Caja de compensación</label><input type="text" readOnly className={`${inputClass} ${readOnlyClass}`} value={datosCV.cajaCompensacion || '—'} /></div>
+                                                <div className="mt-4"><label className={labelClass}>ARL</label><input type="text" readOnly className={`${inputClass} ${readOnlyClass}`} value={resolveOptionLabel(datosCV.arl, 'arl', true)} /></div>
+                                                <div><label className={labelClass}>EPS</label><input type="text" readOnly className={`${inputClass} ${readOnlyClass}`} value={resolveOptionLabel(datosCV.eps, 'eps', true)} /></div>
+                                                <div><label className={labelClass}>AFP</label><input type="text" readOnly className={`${inputClass} ${readOnlyClass}`} value={resolveOptionLabel(datosCV.afp, 'afp', true)} /></div>
+                                                <div><label className={labelClass}>Caja de compensación</label><input type="text" readOnly className={`${inputClass} ${readOnlyClass}`} value={resolveOptionLabel(datosCV.cajaCompensacion, 'caja', true)} /></div>
                                                 <div><label className={labelClass}>Fecha de ingreso</label><input type="text" readOnly className={`${inputClass} ${readOnlyClass}`} value={datosCV.fechaIngreso || '—'} /></div>
                                                 <div><label className={labelClass}>Tipo de contrato</label><input type="text" readOnly className={`${inputClass} ${readOnlyClass}`} value={datosCV.tipoContrato || '—'} /></div>
-                                                <div><label className={labelClass}>Sede</label><input type="text" readOnly className={`${inputClass} ${readOnlyClass}`} value={catalogoSedes.find(s => String(s.id) === String(datosCV.sedeId))?.nombre || datosCV.sedeId || '—'} /></div>
+                                                <div><label className={labelClass}>Sede</label><input type="text" readOnly className={`${inputClass} ${readOnlyClass}`} value={catalogoSedes.find(s => String(s.id) === String(datosCV.sedeId))?.nombre || (datosCV.sedeId && isNaN(datosCV.sedeId) ? datosCV.sedeId : '—')} /></div>
                                                 <div><label className={labelClass}>Cargo / Objeto</label><input type="text" readOnly className={`${inputClass} ${readOnlyClass}`} value={catalogoCargos.find(c => String(c.id) === String(datosCV.cargoId))?.nombre || datosCV.cargoId || '—'} title="Se asigna únicamente al crear o editar el usuario en Gestión de Usuarios" /></div>
                                                 <div><label className={labelClass}>Estado</label><input type="text" readOnly className={`${inputClass} ${readOnlyClass}`} value={datosCV.estado || '—'} /></div>
                                                 <div><label className={labelClass}>Fecha de retiro</label><input type="text" readOnly className={`${inputClass} ${readOnlyClass}`} value={datosCV.fechaRetiro || '—'} /></div>

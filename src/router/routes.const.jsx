@@ -59,8 +59,8 @@ export const ROUTES = {
     MI_PERFIL: { path: '/miCuenta/mi-perfil', title: 'Mi Perfil', element: <MiPerfil /> },
   },
   HOJAS_DE_VIDA: {
-    NOMINA: { path: '/hojasDeVida/nomina', title: 'Hojas de Vida - Nómina', element: <HojaVida tipoSubmodulo="NOMINA" /> },
-    PROVEEDORES: { path: '/hojasDeVida/proveedores', title: 'Hojas de Vida - Proveedores', element: <HojaVida tipoSubmodulo="PROVEEDORES" /> },
+    NOMINA: { path: '/hojasDeVida/nomina', title: 'Hojas de Vida - Nómina', element: <HojaVidaList tipoSubmodulo="NOMINA" /> },
+    PROVEEDORES: { path: '/hojasDeVida/proveedores', title: 'Hojas de Vida - Proveedores', element: <HojaVidaList tipoSubmodulo="PROVEEDORES" /> },
   },
   TALENTO_HUMANO: {
     HOJA_VIDA: { path: '/talentoHumano/hoja-de-vida', title: 'Hoja de Vida', element: <HojaVida /> },

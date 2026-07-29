@@ -2,12 +2,37 @@ import React, { useState, useEffect } from 'react';
 import { Plus, Trash2, Edit2, Save, X, Settings2, ChevronDown, ChevronRight } from 'lucide-react';
 
 const CATEGORIAS = [
-    { key: 'opciones_arl', label: 'ARL', color: 'indigo', defaults: ['POSITIVA', 'SURA', 'BOLÍVAR', 'COLMENA', 'LIBERTY', 'MAPFRE', 'AXA COLPATRIA'] },
-    { key: 'opciones_eps', label: 'EPS', color: 'blue', defaults: ['SURA EPS', 'SANITAS', 'COMPENSAR', 'NUEVA EPS', 'SALUD TOTAL', 'COOSALUD', 'MEDIMÁS', 'MUTUAL SER', 'FAMISANAR', 'CAJACOPI'] },
-    { key: 'opciones_afp', label: 'AFP (Pensiones)', color: 'purple', defaults: ['COLPENSIONES', 'PORVENIR', 'PROTECCIÓN', 'COLFONDOS', 'OLD MUTUAL'] },
-    { key: 'opciones_caja', label: 'Caja de Compensación', color: 'emerald', defaults: ['COMPENSAR', 'COLSUBSIDIO', 'CAFAM', 'COMFENALCO', 'COMFAMA', 'CAJACOPI', 'CONFENALCO ATLÁNTICO'] },
-    { key: 'opciones_tipo_contrato', label: 'Tipo de Contrato', color: 'orange', defaults: ['Término Fijo', 'Término Indefinido', 'Prestación de Servicios', 'Aprendizaje', 'Obra o Labor', 'Temporal'] },
-    { key: 'opciones_estado', label: 'Estado del Empleado', color: 'rose', defaults: ['Activo', 'Inactivo', 'Suspendido', 'Vacaciones', 'Licencia', 'Retirado'] },
+    { key: 'opciones_arl', label: 'ARL', color: 'indigo', defaults: [
+        'Positiva Compañía de Seguros S.A.', 'ARL Sura', 'Axa Colpatria Seguros S.A.',
+        'Colmena S.A. Compañía de Seguros de Vida', 'Seguros Bolívar S.A.',
+        'Seguros ALFA S.A. y Seguros de Vida ALFA S.A.',
+        'La Equidad Seguros Generales Organismo Cooperativo'
+    ] },
+    { key: 'opciones_eps', label: 'EPS', color: 'blue', defaults: [
+        'EPS005 - ENTIDAD PROMOTORA DE SALUD SANITAS S.A.',
+        'EPS037 - NUEVA EPS S.A - NUEVA EMPRESA PROMOTORA DE SALUD NUEVA EPS S.A',
+        'EPS008 - COMPENSAR ENTIDAD PROMOTORA DE SALUD',
+        'EPS010 - EPS-SURA',
+        'EPS002 - SALUD TOTAL S.A. ENTIDAD PROMOTORA DE SALUD',
+        'EPS016 - COOMEVA ENTIDAD PROMOTORA DE SALUD S.A.',
+        'EPS018 - ENTIDAD PROMOTORA DE SALUD SERVICIO OCCIDENTAL DE SALUD S.A. S.O.S.',
+        'EPS033 - SALUDVIDA S.A. ENTIDAD PROMOTORA DE SALUD',
+        'COOSALUD E.S.S ARS', 'MEDIMAS EPS', 'COMPARTA E.P.S', 'MUTUAL SER',
+        'CAJA DE COMPENSACION FAMILIAR C.C.F. DEL ORIENTE COLOMBIANO - COMFAORIENTE'
+    ] },
+    { key: 'opciones_afp', label: 'AFP (Pensiones)', color: 'purple', defaults: [
+        'Administradora Colombiana de Pensiones Colpensiones', 'Porvenir', 'Protección',
+        'Colfondos', 'Fondo Obligatorio de Pensiones Skandia', 'Pensiones de Antioquia'
+    ] },
+    { key: 'opciones_caja', label: 'Caja de Compensación', color: 'emerald', defaults: [
+        'COMPENSAR', 'COMFAORIENTE', 'COLSUBSIDIO', 'CAFAM', 'COMFENALCO', 'COMFAMA', 'CAJACOPI'
+    ] },
+    { key: 'opciones_tipo_contrato', label: 'Tipo de Contrato', color: 'orange', defaults: [
+        'Nomina', 'Prestación de servicios', 'Término Fijo', 'Término Indefinido', 'Aprendizaje', 'Obra o Labor', 'Temporal'
+    ] },
+    { key: 'opciones_estado', label: 'Estado del Empleado', color: 'rose', defaults: [
+        'ACTIVO', 'RETIRADO', 'INACTIVO', 'EN PROCESO', 'Suspendido', 'Vacaciones', 'Licencia'
+    ] },
     { key: 'opciones_pesv', label: 'PESV', color: 'teal', defaults: ['Aplicado', 'No Aplica', 'Pendiente', 'En Proceso'] },
 ];
 
@@ -24,7 +49,12 @@ const COLOR_MAP = {
 export const cargarOpciones = (key, defaults) => {
     try {
         const stored = localStorage.getItem(key);
-        if (stored) return JSON.parse(stored);
+        if (stored) {
+            const parsed = JSON.parse(stored);
+            if (Array.isArray(parsed) && parsed.length > 0) {
+                return Array.from(new Set([...defaults, ...parsed]));
+            }
+        }
     } catch {}
     return defaults;
 };

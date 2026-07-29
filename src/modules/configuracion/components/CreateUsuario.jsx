@@ -6,6 +6,7 @@ import http from '../../../services/httpClient';
 import { cargarOpciones } from '../pages/GestionOpciones';
 import { API_BASE_URL } from '../../../config/api';
 import { CATEGORIAS_CONTRATACION, resolverCategoriaContrato, OPCIONES_CONTRATO_POR_CATEGORIA } from '../../../utils/contractUtils';
+import { resolveOptionLabel } from '../../../utils/optionResolver';
 
 const TIPOS_DOCUMENTO = [
     { id: 1, nombre: 'Cédula de Ciudadanía', sigla: 'CC' },
@@ -25,12 +26,31 @@ const ROLES = [
 const ROLES_CON_OBJETO = ['USER_PRACTICANTE'];
 
 const OPCIONES_DEFAULTS = {
-    arl: ['POSITIVA', 'SURA', 'BOLÍVAR', 'COLMENA', 'LIBERTY', 'MAPFRE', 'AXA COLPATRIA'],
-    eps: ['SURA EPS', 'SANITAS', 'COMPENSAR', 'NUEVA EPS', 'SALUD TOTAL', 'COOSALUD', 'MEDIMÁS', 'MUTUAL SER', 'FAMISANAR', 'CAJACOPI'],
-    afp: ['COLPENSIONES', 'PORVENIR', 'PROTECCIÓN', 'COLFONDOS', 'OLD MUTUAL'],
-    caja: ['COMPENSAR', 'COLSUBSIDIO', 'CAFAM', 'COMFENALCO', 'COMFAMA', 'CAJACOPI', 'CONFENALCO ATLÁNTICO'],
-    tipoContrato: ['Término Fijo', 'Término Indefinido', 'Prestación de Servicios', 'Aprendizaje', 'Obra o Labor', 'Temporal'],
-    estado: ['Activo', 'Inactivo', 'Suspendido', 'Vacaciones', 'Licencia', 'Retirado'],
+    arl: [
+        'Positiva Compañía de Seguros S.A.', 'ARL Sura', 'Axa Colpatria Seguros S.A.',
+        'Colmena S.A. Compañía de Seguros de Vida', 'Seguros Bolívar S.A.',
+        'Seguros ALFA S.A. y Seguros de Vida ALFA S.A.',
+        'La Equidad Seguros Generales Organismo Cooperativo'
+    ],
+    eps: [
+        'EPS005 - ENTIDAD PROMOTORA DE SALUD SANITAS S.A.',
+        'EPS037 - NUEVA EPS S.A - NUEVA EMPRESA PROMOTORA DE SALUD NUEVA EPS S.A',
+        'EPS008 - COMPENSAR ENTIDAD PROMOTORA DE SALUD',
+        'EPS010 - EPS-SURA',
+        'EPS002 - SALUD TOTAL S.A. ENTIDAD PROMOTORA DE SALUD',
+        'EPS016 - COOMEVA ENTIDAD PROMOTORA DE SALUD S.A.',
+        'EPS018 - ENTIDAD PROMOTORA DE SALUD SERVICIO OCCIDENTAL DE SALUD S.A. S.O.S.',
+        'EPS033 - SALUDVIDA S.A. ENTIDAD PROMOTORA DE SALUD',
+        'COOSALUD E.S.S ARS', 'MEDIMAS EPS', 'COMPARTA E.P.S', 'MUTUAL SER',
+        'CAJA DE COMPENSACION FAMILIAR C.C.F. DEL ORIENTE COLOMBIANO - COMFAORIENTE'
+    ],
+    afp: [
+        'Administradora Colombiana de Pensiones Colpensiones', 'Porvenir', 'Protección',
+        'Colfondos', 'Fondo Obligatorio de Pensiones Skandia', 'Pensiones de Antioquia'
+    ],
+    caja: ['COMPENSAR', 'COMFAORIENTE', 'COLSUBSIDIO', 'CAFAM', 'COMFENALCO', 'COMFAMA', 'CAJACOPI'],
+    tipoContrato: ['Nomina', 'Prestación de servicios', 'Término Fijo', 'Término Indefinido', 'Aprendizaje', 'Obra o Labor', 'Temporal'],
+    estado: ['ACTIVO', 'RETIRADO', 'INACTIVO', 'EN PROCESO', 'Suspendido', 'Vacaciones', 'Licencia'],
     pesv: ['Aplicado', 'No Aplica', 'Pendiente', 'En Proceso'],
 };
 
@@ -119,13 +139,13 @@ export const CreateUsuario = ({ isOpen, onClose, onSaved, editData }) => {
                 username: editData.username || '',
                 password: '',
                 rol: editData.rol || '',
-                cargoId: String(editData.cargo?.id || editData.hojaVida?.cargos?.[0]?.id || ''),
+                cargoId: String(editData.cargo?.id || editData.cargoId || editData.hojaVida?.cargos?.[0]?.id || ''),
                 objetoId: String(editData.objeto?.id || ''),
                 clasificacionLaboral: catResuelta,
-                arl: editData.arl || editData.hojaVida?.arl || '',
-                eps: editData.eps || editData.hojaVida?.eps || '',
-                afp: editData.afp || editData.hojaVida?.afp || '',
-                cajaCompensacion: editData.cajaCompensacion || editData.hojaVida?.cajaCompensacion || '',
+                arl: resolveOptionLabel(editData.arl || editData.hojaVida?.arl, 'arl'),
+                eps: resolveOptionLabel(editData.eps || editData.hojaVida?.eps, 'eps'),
+                afp: resolveOptionLabel(editData.afp || editData.hojaVida?.afp, 'afp'),
+                cajaCompensacion: resolveOptionLabel(editData.cajaCompensacion || editData.hojaVida?.cajaCompensacion, 'caja'),
                 fechaIngreso: editData.fechaIngreso || (editData.hojaVida?.fechaIngreso ? editData.hojaVida.fechaIngreso.toString() : ''),
                 tipoContrato: rawContrato,
                 sedeId: String(editData.sede?.id || editData.sedeId || editData.hojaVida?.sedes?.[0]?.id || ''),
@@ -354,33 +374,53 @@ export const CreateUsuario = ({ isOpen, onClose, onSaved, editData }) => {
                                 <label className={labelCls}>ARL</label>
                                 <select name="arl" value={formData.arl} onChange={handleChange} className={inputCls}>
                                     <option value="">Seleccione ARL...</option>
-                                    {opcionesSelect.arl.map((op, i) => <option key={i} value={op}>{op}</option>)}
+                                    {Array.from(new Set([...(opcionesSelect.arl || []), ...(formData.arl ? [formData.arl] : [])])).filter(Boolean).map((op, i) => (
+                                        <option key={i} value={op}>{op}</option>
+                                    ))}
                                 </select>
                             </div>
                             <div className="space-y-1.5">
                                 <label className={labelCls}>EPS</label>
                                 <select name="eps" value={formData.eps} onChange={handleChange} className={inputCls}>
                                     <option value="">Seleccione EPS...</option>
-                                    {opcionesSelect.eps.map((op, i) => <option key={i} value={op}>{op}</option>)}
+                                    {Array.from(new Set([...(opcionesSelect.eps || []), ...(formData.eps ? [formData.eps] : [])])).filter(Boolean).map((op, i) => (
+                                        <option key={i} value={op}>{op}</option>
+                                    ))}
                                 </select>
                             </div>
                             <div className="space-y-1.5">
                                 <label className={labelCls}>AFP (Pensión)</label>
                                 <select name="afp" value={formData.afp} onChange={handleChange} className={inputCls}>
                                     <option value="">Seleccione AFP...</option>
-                                    {opcionesSelect.afp.map((op, i) => <option key={i} value={op}>{op}</option>)}
+                                    {Array.from(new Set([...(opcionesSelect.afp || []), ...(formData.afp ? [formData.afp] : [])])).filter(Boolean).map((op, i) => (
+                                        <option key={i} value={op}>{op}</option>
+                                    ))}
                                 </select>
                             </div>
                             <div className="space-y-1.5">
                                 <label className={labelCls}>Caja de Compensación</label>
                                 <select name="cajaCompensacion" value={formData.cajaCompensacion} onChange={handleChange} className={inputCls}>
                                     <option value="">Seleccione Caja...</option>
-                                    {opcionesSelect.caja.map((op, i) => <option key={i} value={op}>{op}</option>)}
+                                    {Array.from(new Set([...(opcionesSelect.caja || []), ...(formData.cajaCompensacion ? [formData.cajaCompensacion] : [])])).filter(Boolean).map((op, i) => (
+                                        <option key={i} value={op}>{op}</option>
+                                    ))}
                                 </select>
                             </div>
                             <div className="space-y-1.5">
                                 <label className={labelCls}>Fecha de Ingreso</label>
                                 <input type="date" name="fechaIngreso" value={formData.fechaIngreso} onChange={handleChange} className={inputCls} />
+                            </div>
+                            <div className="space-y-1.5">
+                                <label className={labelCls}>Estado</label>
+                                <select name="estado" value={formData.estado} onChange={handleChange} className={inputCls}>
+                                    <option value="">Seleccione Estado...</option>
+                                    {Array.from(new Set([
+                                        ...(opcionesSelect.estado || ['ACTIVO', 'RETIRADO', 'INACTIVO', 'EN PROCESO']),
+                                        ...(formData.estado ? [formData.estado] : [])
+                                    ])).filter(Boolean).map((op, i) => (
+                                        <option key={i} value={op}>{op}</option>
+                                    ))}
+                                </select>
                             </div>
                             <div className="space-y-1.5 col-span-1 md:col-span-2 bg-slate-50 p-3 rounded-xl border border-slate-200">
                                 <label className="text-xs font-bold text-slate-700 uppercase tracking-wider block mb-2">
@@ -414,7 +454,7 @@ export const CreateUsuario = ({ isOpen, onClose, onSaved, editData }) => {
                                                 setFormData(prev => ({
                                                     ...prev,
                                                     clasificacionLaboral: e.target.value,
-                                                    tipoContrato: 'Prestación de Servicios'
+                                                    tipoContrato: 'Prestación de servicios'
                                                 }));
                                             }}
                                             className="text-indigo-600 focus:ring-indigo-500 h-4 w-4"
@@ -425,17 +465,20 @@ export const CreateUsuario = ({ isOpen, onClose, onSaved, editData }) => {
                             </div>
 
                             <div className="space-y-1.5">
-                                <label className={labelCls}>Tipo de Contrato Específico</label>
+                                <label className={labelCls}>Tipo de Contrato</label>
                                 <select name="tipoContrato" value={formData.tipoContrato} onChange={handleChange} className={inputCls}>
                                     <option value="">Seleccione Tipo...</option>
-                                    {(OPCIONES_CONTRATO_POR_CATEGORIA[formData.clasificacionLaboral] || opcionesSelect.tipoContrato).map((op, i) => (
+                                    {Array.from(new Set([
+                                        ...(OPCIONES_CONTRATO_POR_CATEGORIA[formData.clasificacionLaboral] || opcionesSelect.tipoContrato || []),
+                                        ...(formData.tipoContrato ? [formData.tipoContrato] : [])
+                                    ])).filter(Boolean).map((op, i) => (
                                         <option key={i} value={op}>{op}</option>
                                     ))}
                                 </select>
                             </div>
                             <div className="space-y-1.5">
                                 <label className={labelCls}>Sede</label>
-                                <select name="sedeId" value={formData.sedeId} onChange={handleChange} className={inputCls}>
+                                <select name="sedeId" value={String(formData.sedeId || '')} onChange={handleChange} className={inputCls}>
                                     <option value="">Seleccione Sede...</option>
                                     {sedes.map(s => <option key={s.id} value={String(s.id)}>{s.nombre}</option>)}
                                 </select>
@@ -464,13 +507,6 @@ export const CreateUsuario = ({ isOpen, onClose, onSaved, editData }) => {
                                     <option value="">Seleccione...</option>
                                     <option value="Si">Sí</option>
                                     <option value="No">No</option>
-                                </select>
-                            </div>
-                            <div className="space-y-1.5">
-                                <label className={labelCls}>Estado</label>
-                                <select name="estado" value={formData.estado} onChange={handleChange} className={inputCls}>
-                                    <option value="">Seleccione Estado...</option>
-                                    {opcionesSelect.estado.map((op, i) => <option key={i} value={op}>{op}</option>)}
                                 </select>
                             </div>
                             <div className="space-y-1.5">

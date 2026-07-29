@@ -5,6 +5,7 @@ import axios from 'axios';
 import { API_BASE_URL } from '../../../config/api';
 import { useAuth } from '../../../providers/AuthProvider';
 import { exportReportToExcel } from '../../../utils/excelExporter';
+import { esContratoNomina, esContratoOPS } from '../../../utils/contractUtils';
 
 export const HojaVidaList = ({ tipoSubmodulo = 'NOMINA' }) => {
     const navigate = useNavigate();
@@ -37,24 +38,29 @@ export const HojaVidaList = ({ tipoSubmodulo = 'NOMINA' }) => {
         fetchPersonal();
     }, []);
 
-    // Clasificación por Tipo de Contrato
+    // Clasificación estandarizada por Tipo de Contrato
     const personalFiltradoPorContrato = usuarios.filter(u => {
-        const tipoContrato = String(u.tipoContrato || u.hojaVida?.tipoContrato || '').trim().toUpperCase();
+        const tipoContrato = String(u.tipoContrato || u.hojaVida?.tipoContrato || '').trim();
         
-        const esContratoNomina = tipoContrato.includes('NOMINA') || 
-                                 tipoContrato.includes('INDEFINIDO') || 
-                                 tipoContrato.includes('FIJO');
-
         if (esNomina) {
-            return esContratoNomina;
+            return esContratoNomina(tipoContrato) || (!esContratoOPS(tipoContrato));
         } else {
-            // PROVEEDORES / OPS
-            return !esContratoNomina || tipoContrato.includes('PRESTACI') || tipoContrato.includes('OPS') || tipoContrato.includes('CONTRATISTA') || tipoContrato.includes('OBJETO');
+            return esContratoOPS(tipoContrato);
         }
     });
 
     const personalFinal = personalFiltradoPorContrato.filter(u => {
-        const matchEstado = filtroEstado === 'TODOS' || (u.estado?.toUpperCase() || 'INACTIVO') === filtroEstado;
+        const estUpper = (u.estado?.toUpperCase() || 'INACTIVO').trim();
+        let matchEstado = true;
+        
+        if (filtroEstado === 'ACTIVO') {
+            matchEstado = estUpper === 'ACTIVO' || estUpper === 'CONTRATADO';
+        } else if (filtroEstado === 'INACTIVO') {
+            matchEstado = estUpper === 'INACTIVO' || estUpper === 'DESCARTADO';
+        } else if (filtroEstado === 'RETIRADO') {
+            matchEstado = estUpper === 'RETIRADO';
+        }
+
         const searchLower = searchTerm.toLowerCase();
         const matchSearch = (u.nombre || '').toLowerCase().includes(searchLower) ||
                             (u.documento || '').toLowerCase().includes(searchLower) ||
@@ -62,11 +68,27 @@ export const HojaVidaList = ({ tipoSubmodulo = 'NOMINA' }) => {
         return matchEstado && matchSearch;
     });
 
-    const totalActivos = personalFiltradoPorContrato.filter(u => (u.estado?.toUpperCase() || 'INACTIVO') === 'ACTIVO').length;
-    const totalInactivos = personalFiltradoPorContrato.filter(u => (u.estado?.toUpperCase() || 'INACTIVO') === 'INACTIVO').length;
+    const totalActivos = personalFiltradoPorContrato.filter(u => {
+        const e = (u.estado?.toUpperCase() || '').trim();
+        return e === 'ACTIVO' || e === 'CONTRATADO';
+    }).length;
+
+    const totalInactivos = personalFiltradoPorContrato.filter(u => {
+        const e = (u.estado?.toUpperCase() || '').trim();
+        return e === 'INACTIVO' || e === 'DESCARTADO';
+    }).length;
+
+    const totalRetirados = personalFiltradoPorContrato.filter(u => {
+        const e = (u.estado?.toUpperCase() || '').trim();
+        return e === 'RETIRADO';
+    }).length;
 
     const handleVerHojaVida = (cedula) => {
-        navigate(`/talentoHumano/hoja-de-vida?cedula=${cedula}`);
+        if (esNomina) {
+            navigate(`/talentoHumano/hoja-de-vida?cedula=${cedula}&submodulo=NOMINA`);
+        } else {
+            navigate(`/talentoHumano/hoja-de-vida?cedula=${cedula}&submodulo=PROVEEDORES`);
+        }
     };
 
     const exportToExcel = () => {
@@ -128,7 +150,7 @@ export const HojaVidaList = ({ tipoSubmodulo = 'NOMINA' }) => {
                 </div>
 
                 {/* Tarjetas de Estadísticas */}
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                     <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex items-center gap-4">
                         <div className={`p-3 rounded-xl ${esNomina ? 'bg-teal-50 text-teal-600' : 'bg-indigo-50 text-indigo-600'}`}>
                             <FileText className="w-6 h-6" />
@@ -148,12 +170,21 @@ export const HojaVidaList = ({ tipoSubmodulo = 'NOMINA' }) => {
                         </div>
                     </div>
                     <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex items-center gap-4">
-                        <div className="p-3 rounded-xl bg-rose-50 text-rose-600">
+                        <div className="p-3 rounded-xl bg-amber-50 text-amber-600">
                             <UserX className="w-6 h-6" />
                         </div>
                         <div>
                             <p className="text-xs text-slate-400 font-bold uppercase tracking-wider">Inactivos</p>
                             <p className="text-2xl font-black text-slate-800">{totalInactivos}</p>
+                        </div>
+                    </div>
+                    <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex items-center gap-4">
+                        <div className="p-3 rounded-xl bg-rose-50 text-rose-600">
+                            <UserX className="w-6 h-6" />
+                        </div>
+                        <div>
+                            <p className="text-xs text-slate-400 font-bold uppercase tracking-wider">Retirados</p>
+                            <p className="text-2xl font-black text-slate-800">{totalRetirados}</p>
                         </div>
                     </div>
                 </div>
@@ -163,7 +194,7 @@ export const HojaVidaList = ({ tipoSubmodulo = 'NOMINA' }) => {
                     <div className="p-5 border-b border-slate-100 flex flex-col sm:flex-row justify-between items-center gap-4">
                         
                         {/* Selector de Estado */}
-                        <div className="flex bg-slate-100 p-1 rounded-xl w-full sm:w-auto">
+                        <div className="flex bg-slate-100 p-1 rounded-xl w-full sm:w-auto overflow-x-auto">
                             <button 
                                 onClick={() => setFiltroEstado('TODOS')}
                                 className={`flex-1 sm:flex-initial px-4 py-1.5 text-xs font-bold rounded-lg transition-colors ${filtroEstado === 'TODOS' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
@@ -171,11 +202,15 @@ export const HojaVidaList = ({ tipoSubmodulo = 'NOMINA' }) => {
                             <button 
                                 onClick={() => setFiltroEstado('ACTIVO')}
                                 className={`flex-1 sm:flex-initial px-4 py-1.5 text-xs font-bold rounded-lg transition-colors ${filtroEstado === 'ACTIVO' ? 'bg-white text-emerald-700 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
-                            >Activos</button>
+                            >Activos ({totalActivos})</button>
                             <button 
                                 onClick={() => setFiltroEstado('INACTIVO')}
-                                className={`flex-1 sm:flex-initial px-4 py-1.5 text-xs font-bold rounded-lg transition-colors ${filtroEstado === 'INACTIVO' ? 'bg-white text-rose-700 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
-                            >Inactivos</button>
+                                className={`flex-1 sm:flex-initial px-4 py-1.5 text-xs font-bold rounded-lg transition-colors ${filtroEstado === 'INACTIVO' ? 'bg-white text-amber-700 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
+                            >Inactivos ({totalInactivos})</button>
+                            <button 
+                                onClick={() => setFiltroEstado('RETIRADO')}
+                                className={`flex-1 sm:flex-initial px-4 py-1.5 text-xs font-bold rounded-lg transition-colors ${filtroEstado === 'RETIRADO' ? 'bg-white text-rose-700 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
+                            >Retirados ({totalRetirados})</button>
                         </div>
 
                         {/* Buscador */}
