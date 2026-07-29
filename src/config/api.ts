@@ -1,5 +1,5 @@
 /**
- * Configuración central de la URL base del backend.
- * Soporta variable VITE_API_URL o fallback a túnel de Cloudflare / localhost.
+ * Configuración central de la URL base del backend en producción.
+ * Subdominio permanente de Cloudflare Tunnel: clinovaapi.clinicalhouse.co
  */
-export const API_BASE_URL = import.meta.env.VITE_API_URL || 'https://interference-purse-jones-convinced.trycloudflare.com';
+export const API_BASE_URL = import.meta.env.VITE_API_URL || 'https://clinovaapi.clinicalhouse.co';
